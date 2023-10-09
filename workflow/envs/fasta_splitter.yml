@@ -1,0 +1,8 @@
+name: fasta_splitter_env
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - pysam

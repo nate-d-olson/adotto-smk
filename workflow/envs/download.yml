@@ -1,0 +1,6 @@
+name: download
+channels:
+  - defaults
+dependencies:
+  - curl
+  - coreutils  # for md5sum

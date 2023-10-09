@@ -1,0 +1,10 @@
+name: trf_reformatter_env
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - pandas
+  - joblib
+  - truvari

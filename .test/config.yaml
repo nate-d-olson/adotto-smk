@@ -1,1 +1,18 @@
-sample: "a"
+references:
+  GRCh37:
+    GIABTRURL: [URL for GRCh37 giabtr]
+    REFURL: [URL to download GRCh37 reference]
+    REF_MD5: [Expected MD5 for GRCh37 reference]
+    GIABTR_MD5: [Expected MD5 for GRCh37 giabtr]
+  GRCh38:
+    GIABTRURL: [URL for GRCh38 giabtr]
+    REFURL: [URL to download GRCh38 reference]
+    REF_MD5: [Expected MD5 for GRCh38 reference]
+    GIABTR_MD5: [Expected MD5 for GRCh38 giabtr]
+  CHM13:
+    GIABTRURL: [URL for CHM13 giabtr]
+    REFURL: [URL to download CHM13 reference]
+    REF_MD5: [Expected MD5 for CHM13 reference]
+    GIABTR_MD5: [Expected MD5 for CHM13 giabtr]
+n_splits: 10
+

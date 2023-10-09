@@ -1,0 +1,5 @@
+name: trf_env
+channels:
+  - bioconda
+dependencies:
+  - trf

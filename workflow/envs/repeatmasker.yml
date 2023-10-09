@@ -1,0 +1,5 @@
+name: repeatmasker_env
+channels:
+  - bioconda
+dependencies:
+  - repeatmasker

@@ -1,0 +1,11 @@
+name: annotation_improver_env
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - pysam
+  - joblib
+  - truvari
+  - pandas
