@@ -1,0 +1,11 @@
+name: intermediate_annotations
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - bedtools
+  - htslib  # For bgzip and tabix
+  - tabix
+  - truvari
