@@ -40,7 +40,7 @@ rule download_reference:
     shell:
         """
         curl -L {params.refurl} 1> {output} 2> {log}
-        # echo "{params.expected_md5}  {output}" | md5sum -c - 2>> {log}
+        echo "{params.expected_md5}  {output}" | md5sum -c - 2>> {log}
         """
 
 
