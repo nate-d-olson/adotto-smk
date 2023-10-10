@@ -42,7 +42,7 @@ def chunk_into_n(lst, n):
 def main(args):
     """
     Main function to execute the fasta splitting process.
-    
+
     Parameters:
     - args (argparse.Namespace): Parsed command-line arguments.
     """
@@ -50,8 +50,10 @@ def main(args):
 
     # Assert that the number of parts is not greater than the number of sequences
     num_sequences = len(f.references)
-    assert args.n_parts <= num_sequences, (f"The input fasta file has {num_sequences} sequences. "
-                                      f"The number of parts ({args.n_parts}) cannot be greater than that number.")
+    assert args.n_parts <= num_sequences, (
+        f"The input fasta file has {num_sequences} sequences. "
+        f"The number of parts ({args.n_parts}) cannot be greater than that number."
+    )
 
     for pos, i in enumerate(chunk_into_n(f.references, args.n_parts)):
         output_filename = f"{args.output_dir}/{args.refid}.part{pos}.fasta"
@@ -62,18 +64,36 @@ def main(args):
                 fout.write(s + "\n")
         logging.info(f"Written {output_filename}")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Split fasta file by sequences.")
-    parser.add_argument("--fasta_path", required=True, help="Path to the input fasta file.")
-    parser.add_argument("--n_parts", type=int, required=True, help="Number of parts to split the fasta into.")
-    parser.add_argument("--output_dir", required=True, help="Directory to save the split fasta files.")
-    parser.add_argument("--refid", required=True, help="Reference ID for naming the split fasta files.")
-    parser.add_argument("--log_level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="INFO", 
-                        help="Set the logging level")
+    parser.add_argument(
+        "--fasta_path", required=True, help="Path to the input fasta file."
+    )
+    parser.add_argument(
+        "--n_parts",
+        type=int,
+        required=True,
+        help="Number of parts to split the fasta into.",
+    )
+    parser.add_argument(
+        "--output_dir", required=True, help="Directory to save the split fasta files."
+    )
+    parser.add_argument(
+        "--refid", required=True, help="Reference ID for naming the split fasta files."
+    )
+    parser.add_argument(
+        "--log_level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default="INFO",
+        help="Set the logging level",
+    )
 
     args = parser.parse_args()
 
     # Setting up logging
-    logging.basicConfig(level=args.log_level, format="%(asctime)s [%(levelname)s] - %(message)s")
-    
+    logging.basicConfig(
+        level=args.log_level, format="%(asctime)s [%(levelname)s] - %(message)s"
+    )
+
     main(args)
