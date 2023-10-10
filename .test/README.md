@@ -11,3 +11,9 @@ zcat GRCh38_AllTandemRepeats.bed.gz \
 bgzip GRCh38chr21subset_AllTandemRepeats.bed
 ```
 The resulting bed file was uploaded to aws.
+
+A subset of GRCh38 chr21 was generated for use in tests and pipeline development
+```
+echo "chr21:1-5023000" | samtools faidx GRCh38_chr21.fasta.gz -r - > GRCh38chr21subset.fasta
+bgzip GRCh38chr21subset.fasta 
+```
