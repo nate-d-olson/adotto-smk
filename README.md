@@ -1,8 +1,8 @@
 # Tandem Repeat Annotation Pipeline
 
-[![Actions Status](https://github.com/mrvollger/SmkTemplate/workflows/CI/badge.svg)](https://github.com/mrvollger/SmkTemplate/actions)
-[![Actions Status](https://github.com/mrvollger/SmkTemplate/workflows/Linting/badge.svg)](https://github.com/mrvollger/SmkTemplate/actions)
-[![Actions Status](https://github.com/mrvollger/SmkTemplate/workflows/black/badge.svg)](https://github.com/mrvollger/SmkTemplate/actions)
+[![CI](https://github.com/nate-d-olson/adotto-smk/actions/workflows/main.yml/badge.svg)](https://github.com/nate-d-olson/adotto-smk/actions/workflows/main.yml)
+[![Linting](https://github.com/nate-d-olson/adotto-smk/actions/workflows/lint.yml/badge.svg)](https://github.com/nate-d-olson/adotto-smk/actions/workflows/lint.yml)
+[![black](https://github.com/nate-d-olson/adotto-smk/actions/workflows/black.yml/badge.svg)](https://github.com/nate-d-olson/adotto-smk/actions/workflows/black.yml)
 
 This pipeline is designed to annotate tandem repeats in genomic sequences using various tools and custom scripts. It's built upon the Snakemake workflow management system.
 
