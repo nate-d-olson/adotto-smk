@@ -12,9 +12,10 @@ report: "report/workflow.rst"
 # Configuration
 configfile: ".test/config.yaml"
 
-
+# Variables
+REFIDS=config["references"].keys()
 wildcard_constraints:
-    refid="|".join(config["references"].keys()),
+    refid="|".join(REFIDS),
 
 
 # Default rule
