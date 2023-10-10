@@ -1,18 +1,8 @@
 references:
-  GRCh37:
-    GIABTRURL: [URL for GRCh37 giabtr]
-    REFURL: [URL to download GRCh37 reference]
-    REF_MD5: [Expected MD5 for GRCh37 reference]
-    GIABTR_MD5: [Expected MD5 for GRCh37 giabtr]
-  GRCh38:
-    GIABTRURL: [URL for GRCh38 giabtr]
-    REFURL: [URL to download GRCh38 reference]
-    REF_MD5: [Expected MD5 for GRCh38 reference]
-    GIABTR_MD5: [Expected MD5 for GRCh38 giabtr]
-  CHM13:
-    GIABTRURL: [URL for CHM13 giabtr]
-    REFURL: [URL to download CHM13 reference]
-    REF_MD5: [Expected MD5 for CHM13 reference]
-    GIABTR_MD5: [Expected MD5 for CHM13 giabtr]
-n_splits: 10
+  GRCh37: ## Will want to limit to chr21
+    GIABTRURL: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.3/GRCh37@all/LowComplexity/GRCh37_AllTandemRepeats.bed.gz
+    REFURL: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh37/hs37d5.fa.gz
+    REF_MD5: d10eebe06c0dbbcb04253e3294d63efc
+    GIABTR_MD5: 0404a18d3946d011231d49ae215ba9eb
+n_splits: 4
 
