@@ -3,64 +3,78 @@ import sys
 import math
 from snakemake.utils import min_version
 
-min_version("6.0")
+min_version("7.32.2")
 
 
 report: "report/workflow.rst"
 
+
 # Configuration
 configfile: "config/config.yaml"
+
+
+wildcard_constraints:
+    refid="|".join(config["references"].keys()),
+
 
 # Default rule
 rule all:
     input:
-        expand("results/{refid}.adotto_TRregions_v1.0.bed", refid=["GRCh37", "GRCh38", "CHM13"])
+        expand(
+            "results/{refid}.adotto_TRregions_v1.0.bed",
+            refid=config["references"].keys(),
+        ),
+
 
 # Rule to download the reference genome
 rule download_reference:
     output:
-        protected("results/{refid}.fasta")
+        protected("results/{refid}.fasta"),
     params:
         refurl=lambda wildcards: config["references"][wildcards.refid]["REFURL"],
-        expected_md5=lambda wildcards: config["references"][wildcards.refid]["REF_MD5"]
+        expected_md5=lambda wildcards: config["references"][wildcards.refid]["REF_MD5"],
     log:
-        "logs/{refid}_download_reference.log"
+        "logs/{refid}_download_reference.log",
     conda:
-        "envs/download.yaml"
+        "envs/download.yml"
     shell:
         """
         curl -L {params.refurl} > {output}
         echo "{params.expected_md5}  {output}" | md5sum -c - 2>> {log}
         """
 
+
 # Rule to download GIAB TR stratification
 rule download_giab_tr:
     output:
-        protected("results/{refid}.tr_regions.bed.gz")
+        protected("results/{refid}.tr_regions.bed.gz"),
     params:
         giabtrurl=lambda wildcards: config["references"][wildcards.refid]["GIABTRURL"],
-        expected_md5=lambda wildcards: config["references"][wildcards.refid]["GIABTR_MD5"]
+        expected_md5=lambda wildcards: config["references"][wildcards.refid][
+            "GIABTR_MD5"
+        ],
     log:
-        "logs/{refid}_download_giab_tr.log"
+        "logs/{refid}_download_giab_tr.log",
     conda:
-        "envs/download.yaml"
+        "envs/download.yml"
     shell:
         """
         curl -L {params.giabtrurl} > {output}
         echo "{params.expected_md5}  {output}" | md5sum -c - 2>> {log}
         """
 
+
 # Rule to get repeat sequences using samtools
 rule get_repeat_sequences:
     input:
         bed="results/{refid}.tr_regions.bed.gz",
-        ref="results/{refid}.fasta"
+        ref="results/{refid}.fasta",
     output:
-        "results/{refid}.tr_sequences.fasta"
+        "results/{refid}.tr_sequences.fasta",
     log:
-        "logs/{refid}_get_repeat_sequences.log"
+        "logs/{refid}_get_repeat_sequences.log",
     conda:
-        "envs/samtools.yaml"
+        "envs/samtools.yml"
     shell:
         """
         zcat {input.bed} 2>> {log} \
@@ -69,16 +83,17 @@ rule get_repeat_sequences:
                 2>> {log}
         """
 
+
 # Rule to annotate sequences using trf
 rule annotate_sequences:
     input:
-        "results/{refid}.tr_sequences.fasta"
+        "results/{refid}.tr_sequences.fasta",
     output:
-        "results/{refid}.tandemrepeatfinder.txt"
+        "results/{refid}.tandemrepeatfinder.txt",
     log:
-        "logs/{refid}_annotate_sequences.log"
+        "logs/{refid}_annotate_sequences.log",
     conda:
-        "envs/trf.yaml"
+        "envs/trf.yml"
     shell:
         "trf {input} 3 7 7 80 5 5 500 -h -ngs 1> {output} 2>{log}"
 
@@ -86,13 +101,13 @@ rule annotate_sequences:
 # Rule for TRF parsing
 rule trf_parsing:
     input:
-        "results/{refid}.tandemrepeatfinder.txt"
+        "results/{refid}.tandemrepeatfinder.txt",
     output:
-        "results/{refid}.trf_annos.bed"
+        "results/{refid}.trf_annos.bed",
     log:
-        "logs/{refid}.trf_parsing.log"
+        "logs/{refid}.trf_parsing.log",
     conda:
-        "envs/trf_reformatter.yaml"
+        "envs/trf_reformatter.yml"
     shell:
         """
         python scripts/trf_reformatter.py {input} {output} > {log}
@@ -103,11 +118,11 @@ rule trf_parsing:
 rule unannotated_regions:
     input:
         regions="results/{refid}.tr_regions.bed.gz",
-        annotated="results/{refid}.trf_annos.bed"
+        annotated="results/{refid}.trf_annos.bed",
     output:
-        "results/{refid}.unannotated_regions.bed"
+        "results/{refid}.unannotated_regions.bed",
     log:
-        "logs/{refid}_unannotated_regions.log"
+        "logs/{refid}_unannotated_regions.log",
     conda:
         "envs/bedtools.yml"
     shell:
@@ -116,16 +131,19 @@ rule unannotated_regions:
             | awk '$4 == 0' 1> {output} 2>> {log}
         """
 
+
 # Rule for intermediate annotations
 rule intermediate_annotations:
     input:
-        regions="results/{refid}.tr_regions.bed",
-        annotations="results/{refid}.trf_annos.bed"
+        regions="results/{refid}.tr_regions.bed.gz",
+        annotations="results/{refid}.trf_annos.bed",
     output:
-        bed="results/{refid}.candidate_v1.bed.gz",
-        tbi="results/{refid}.candidate_v1.bed.gz.tbi"
+        bed="results/{refid}.candidate_v1.0.bed.gz",
+        tbi="results/{refid}.candidate_v1.0.bed.gz.tbi",
     log:
-        "logs/{refid}_intermediate_annotations.log"
+        "logs/{refid}_intermediate_annotations.log",
+    conda:
+        "envs/intermediate_annotations.yml"
     shell:
         """
         python scripts/tr_reganno_maker.py {input.regions} {input.annotations} 2> {log}\
@@ -134,48 +152,57 @@ rule intermediate_annotations:
         tabix {output.bed} &>> {log}
         """
 
+
 # Rule for splitting fasta into multiple parts
 rule split_fasta:
     input:
-        fasta="results/{refid}.fasta"
+        fasta="results/{refid}.fasta",
     output:
-        dynamic("results/split_fasta_parts/{refid}.part*.fasta")
+        expand(
+            "results/split_fasta_parts/{{refid}}.part{part}.fasta",
+            part=range(config["n_splits"]),
+        ),
     params:
-        n_parts=config["n_splits"]
+        n_parts=config["n_splits"],
     log:
-        "logs/{refid}_split_fasta.log"
+        "logs/{refid}_split_fasta.log",
     conda:
-        "envs/fasta_splitter.yaml"
+        "envs/fasta_splitter.yml"
     shell:
         """
         python scripts/fasta_splitter.py {input.fasta} {params.n_parts} &> {log}
         """
 
+
 # Rule for creating RepeatMasker annotations
 rule repeatmasker_annotations:
     input:
-        split_fasta="results/split_fasta_parts/{refid}.part{part}.fasta"
+        split_fasta="results/split_fasta_parts/{refid}.part{part}.fasta",
     output:
-        annotated="results/repeatmasker_annotated/{refid}.part{part}.rmout"  # Assuming RepeatMasker outputs ".rmout" files
+        annotated="results/repeatmasker_annotated/{refid}.part{part}.rmout",  # Assuming RepeatMasker outputs ".rmout" files
     log:
-        "logs/{refid}_repeatmasker_part{part}.log"
+        "logs/{refid}_repeatmasker_part{part}.log",
     conda:
-        "envs/repeatmasker.yaml"
+        "envs/repeatmasker.yml"
     shell:
         """
         RepeatMasker -pa 16 -qq -e hmmer -species human -lcambig -nocut -div 50 -no_id -s {input.split_fasta} 2> {log}
         """
 
+
 # Rule to convert RepeatMasker Output to joblib
 rule convert_repeatmasker_to_joblib:
     input:
-        rmout_files=expand("data/repeatmasker_annotated/{refid}.part{part}.rmout", part=range(config["n_splits"]))
+        rmout_files=expand(
+            "results/repeatmasker_annotated/{{refid}}.part{part}.rmout",
+            part=range(config["n_splits"]),
+        ),
     output:
-        "results/{refid}.repmask.jl"
+        "results/{refid}.repmask.jl",
     log:
-        "logs/{refid}_convert_repeatmasker.log"
+        "logs/{refid}_convert_repeatmasker.log",
     conda:
-        "envs/repmask_to_joblib.yaml"
+        "envs/repmask_to_joblib.yml"
     shell:
         """
         python scripts/repmask_to_joblib.py {input.rmout_files} 2> {log} && mv repmask_results.dict.jl {output}
@@ -185,15 +212,15 @@ rule convert_repeatmasker_to_joblib:
 # Rule for improving annotations
 rule improve_annotations:
     input:
-        candidate="results/{refid}.candidate_v1.0.bed",
+        candidate="results/{refid}.candidate_v1.0.bed.gz",
         reference="results/{refid}.fasta",
-        repmask="results/{refid}.repmask.jl"
+        repmask="results/{refid}.repmask.jl",
     output:
-        "results/{refid}.adotto_TRregions_v1.0.bed"
+        "results/{refid}.adotto_TRregions_v1.0.bed",
     log:
-        "logs/{refid}_improve_annotations.log"
+        "logs/{refid}_improve_annotations.log",
     conda:
-        "envs/annotation_improver.yaml"
+        "envs/annotation_improver.yml"
     shell:
         """
         python scripts/annotation_improver.py \
@@ -202,4 +229,3 @@ rule improve_annotations:
             {input.repmask} \
             > {output}
         """
-
