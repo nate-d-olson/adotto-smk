@@ -10,7 +10,7 @@ report: "report/workflow.rst"
 
 
 # Configuration
-configfile: ".test/config.yaml"
+#configfile: ".test/config.yaml"
 
 # Variables
 REFIDS=config["references"].keys()
@@ -23,7 +23,7 @@ rule all:
     input:
         expand(
             "results/{refid}.adotto_TRregions_v1.0.bed",
-            refid=config["references"].keys(),
+            refid=REFIDS,
         ),
 
 

@@ -7,14 +7,14 @@ references:
   GRCh38:
     GIABTRURL: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.3/GRCh38@all/LowComplexity/GRCh38_AllTandemRepeats.bed.gz
     REFURL: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh38/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.gz
-    REF_MD5: 74364e21a13e54920f098364aa66cf87
+    REF_MD5: 939ce19062d1462c09b88c55faca4d76
     GIABTR_MD5: 73fccd2d35396f4fbc32cb7d3de5818c
   CHM13:
     GIABTRURL: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.3/CHM13@all/LowComplexity/CHM13_AllTandemRepeats.bed.gz
     REFURL: https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz
     REF_MD5: 06caded0055ec647a69acb708e13beff
     GIABTR_MD5: bba0f88ac309e645b8963ca4778f8379
-n_splits: 10
-rm_threads: 8
+n_splits: 24
+rm_threads: 12
 
 
