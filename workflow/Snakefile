@@ -165,14 +165,19 @@ rule split_fasta:
     params:
         n_parts=config["n_splits"],
         refid="{refid}",
-        outdir="results/split_fasta_parts/",
+        outdir=lambda w, input: os.path.splitext(input[0])[0],
     log:
         "logs/{refid}_split_fasta.log",
     conda:
         "envs/fasta_splitter.yml"
     shell:
         """
-        python workflow/scripts/fasta_splitter.py {input.fasta} {params.n_parts} {params.outdir} {params.refid} &> {log}
+        python workflow/scripts/fasta_splitter.py \
+            --fasta_path {input.fasta} \
+            --n_parts {params.n_parts} \
+            --output_dir {params.outdir} 
+            --refid {params.refid} \
+            &> {log}
         """
 
 
