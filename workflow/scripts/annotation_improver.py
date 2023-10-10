@@ -70,8 +70,8 @@ HEADER = [
     "mu_purity",
     "pct_annotated",
     "interspersed",
-    "patho",
-    "codis",
+    # "patho",
+    # "codis",
     "annos",
 ]
 
@@ -601,4 +601,21 @@ if __name__ == "__main__":
             reg, non_hom, first_start, last_end
         )
         reg["start"], reg["end"] = new_start, new_end
-        reg["up_buff"], reg["dn_buff"] = (s_buff,)
+        reg["up_buff"], reg["dn_buff"] = s_buff, e_buff
+
+        # update annotations
+        reg["annos"] = out_annos
+        reg["n_filtered"] = in_anno_cnt - len(out_annos)
+        reg["n_annos"] = len(out_annos)
+        reg["n_subregions"] = len([_ for _ in get_subregions(out_annos)])
+        reg["mu_purity"] = annotate_purity(reg)
+        reg["pct_annotated"] = pct_annotated(reg, first_start, last_end)
+
+        # Do it after we've update the positions
+        # reg['patho'] = patho.get_annotation(reg)
+        # reg['codis'] = codis.get_annotation(reg)
+
+        reg["hom_span"] = resolve_homspan(reg, hom_tree)
+
+        write_region(reg)
+    sys.stderr.write(f"removed {removed} regions from {total}\n")
