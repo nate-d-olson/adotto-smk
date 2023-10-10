@@ -29,7 +29,7 @@ rule all:
 # Rule to download the reference genome
 rule download_reference:
     output:
-        protected("results/{refid}.fasta"),
+        protected("results/{refid}.fasta.gz"),
     params:
         refurl=lambda wildcards: config["references"][wildcards.refid]["REFURL"],
         expected_md5=lambda wildcards: config["references"][wildcards.refid]["REF_MD5"],
@@ -39,7 +39,7 @@ rule download_reference:
         "envs/download.yml"
     shell:
         """
-        curl -L {params.refurl} > {output}
+        curl -L {params.refurl} 1> {output} 2> {log}
         echo "{params.expected_md5}  {output}" | md5sum -c - 2>> {log}
         """
 
@@ -68,7 +68,7 @@ rule download_giab_tr:
 rule get_repeat_sequences:
     input:
         bed="results/{refid}.tr_regions.bed.gz",
-        ref="results/{refid}.fasta",
+        ref="results/{refid}.fasta.gz",
     output:
         "results/{refid}.tr_sequences.fasta",
     log:
@@ -156,7 +156,7 @@ rule intermediate_annotations:
 # Rule for splitting fasta into multiple parts
 rule split_fasta:
     input:
-        fasta="results/{refid}.fasta",
+        fasta="results/{refid}.fasta.gz",
     output:
         expand(
             "results/split_fasta_parts/{{refid}}.part{part}.fasta",
@@ -213,7 +213,7 @@ rule convert_repeatmasker_to_joblib:
 rule improve_annotations:
     input:
         candidate="results/{refid}.candidate_v1.0.bed.gz",
-        reference="results/{refid}.fasta",
+        reference="results/{refid}.fasta.gz",
         repmask="results/{refid}.repmask.jl",
     output:
         "results/{refid}.adotto_TRregions_v1.0.bed",
