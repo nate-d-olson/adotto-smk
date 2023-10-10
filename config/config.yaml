@@ -1,19 +1,19 @@
 references:
   GRCh37:
-    GIABTRURL: [URL for GRCh37 giabtr]
-    REFURL: [URL to download GRCh37 reference]
-    REF_MD5: [Expected MD5 for GRCh37 reference]
-    GIABTR_MD5: [Expected MD5 for GRCh37 giabtr]
+    GIABTRURL: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.3/GRCh37@all/LowComplexity/GRCh37_AllTandemRepeats.bed.gz
+    REFURL: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh37/hs37d5.fa.gz
+    REF_MD5: d10eebe06c0dbbcb04253e3294d63efc
+    GIABTR_MD5: 0404a18d3946d011231d49ae215ba9eb
   GRCh38:
-    GIABTRURL: [URL for GRCh38 giabtr]
-    REFURL: [URL to download GRCh38 reference]
-    REF_MD5: [Expected MD5 for GRCh38 reference]
-    GIABTR_MD5: [Expected MD5 for GRCh38 giabtr]
+    GIABTRURL: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.3/GRCh38@all/LowComplexity/GRCh38_AllTandemRepeats.bed.gz
+    REFURL: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh38/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.gz
+    REF_MD5: 74364e21a13e54920f098364aa66cf87
+    GIABTR_MD5: 73fccd2d35396f4fbc32cb7d3de5818c
   CHM13:
-    GIABTRURL: [URL for CHM13 giabtr]
-    REFURL: [URL to download CHM13 reference]
-    REF_MD5: [Expected MD5 for CHM13 reference]
-    GIABTR_MD5: [Expected MD5 for CHM13 giabtr]
+    GIABTRURL: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.3/CHM13@all/LowComplexity/CHM13_AllTandemRepeats.bed.gz
+    REFURL: https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz
+    REF_MD5: 06caded0055ec647a69acb708e13beff
+    GIABTR_MD5: bba0f88ac309e645b8963ca4778f8379
 n_splits: 10
 
 
