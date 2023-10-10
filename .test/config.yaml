@@ -4,5 +4,5 @@ references:
     REFURL: https://giab-data.s3.amazonaws.com/giab-test-data/GRCh38_chr21.fa.gz
     REF_MD5: d10eebe06c0dbbcb04253e3294d63efc
     GIABTR_MD5: 113eab8433fbae8db100efe5148fb74a
-n_splits: 4
+n_splits: 1
 
