@@ -189,6 +189,7 @@ rule repeatmasker_annotations:
         annotated="results/repeatmasker_annotated/{refid}.part{part}.rmout",  # Assuming RepeatMasker outputs ".rmout" files
     log:
         "logs/{refid}_repeatmasker_part{part}.log",
+    threads: config["rm_threads"]
     conda:
         "envs/repeatmasker.yml"
     shell:
