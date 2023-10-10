@@ -93,4 +93,4 @@ if __name__ == "__main__":
         "entropy",
         "repeat",
     ]
-    data[columns].to_csv(out_name + ".bed", sep="\t", index=False, header=False)
+    data[columns].to_csv(out_name, sep="\t", index=False, header=False)
