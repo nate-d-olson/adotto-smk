@@ -2,8 +2,8 @@ references:
   GRCh38_chr21:
     GIABTRURL: https://giab-data.s3.amazonaws.com/giab-test-data/GRCh38chr21subset_AllTandemRepeats.bed.gz 
     REFURL: https://giab-data.s3.amazonaws.com/giab-test-data/GRCh38chr21subset.fasta.gz
-    REF_MD5: f0a17824273a18ea33a6869500311b11
+    REF_MD5: f83fa6946924a8982ec9cd7063466bee
     GIABTR_MD5: 183b227e6b03e41cbe165f5b199a8164
 n_splits: 1
-rm_threads: 1
+rm_threads: 20
 
