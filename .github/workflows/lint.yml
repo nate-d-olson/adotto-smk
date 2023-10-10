@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Test linting
-        uses: snakemake/snakemake-github-action@v1.25.1
+        uses: snakemake/snakemake-github-action@v1
         with:
           directory: .
           snakefile: workflow/Snakefile
