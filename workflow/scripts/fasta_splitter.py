@@ -12,10 +12,13 @@ def chunk_into_n(lst, n):
 if __name__ == "__main__":
     fasta_path = sys.argv[1]
     n_parts = int(sys.argv[2])
+    output_dir = sys.argv[3]
+    refid = sys.argv[4]
 
     f = pysam.FastaFile(fasta_path)
     for pos, i in enumerate(chunk_into_n(f.references, n_parts)):
-        with open(f"part{pos}.fasta", "w") as fout:
+        output_filename = f"{output_dir}/{refid}.part{pos}.fasta"
+        with open(output_filename, "w") as fout:
             for ref in i:
                 fout.write(f">{ref}\n")
                 s = re.sub("(.{100})", "\\1\n", f[ref], 0, re.DOTALL).strip()
