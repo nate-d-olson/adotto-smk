@@ -15,9 +15,24 @@ jobs:
   linting:
     runs-on: ubuntu-latest
     steps:
-      - name: Test linting
-        uses: snakemake/snakemake-github-action@v1
-        with:
-          directory: .
-          snakefile: Snakefile
-          args: "--lint"
+    - name: Checkout repo
+      uses: actions/checkout@v2 
+      
+    - name: Display the path
+      shell: bash
+      run:  echo $PATH
+      
+    - name: Display the working directory
+      shell: bash
+      run: echo $PWD
+        
+    - name: Display the directory contents
+      shell: bash
+      run: ls data
+
+    - name: Test linting
+      uses: snakemake/snakemake-github-action@v1
+      with:
+        directory: .
+        snakefile: workflow/Snakefile
+        args: "--lint"
