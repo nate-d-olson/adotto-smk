@@ -47,7 +47,7 @@ rule samtools_index:
 rule bedtools_sort_bed:
     input:
         in_file="{prefix}.bed",
-        genome=lambda wildcards: f"results/{next((id for id in REFIDS if id in wildcards.prefix), 'UNKNOWN')}.fasta.gz.fai",
+        genome=lambda wildcards: f"results/references/{next((id for id in REFIDS if id in wildcards.prefix), 'UNKNOWN')}.fasta.gz.fai",
     output:
         "{prefix}_sorted.bed",
     log:
