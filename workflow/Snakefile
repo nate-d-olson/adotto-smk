@@ -272,7 +272,7 @@ rule get_repeat_sequences:
 # Rule for splitting fasta into multiple parts
 rule split_fasta:
     input:
-        fasta="results/regions/{refid}.tr_sequences.fasta",
+        fasta="results/regions/{refid}/{refid}.tr_sequences.fasta",
     output:
         expand(
             "results/regions/split_fasta/{{refid}}/part{part}.fasta",
