@@ -405,7 +405,6 @@ def annotate_purity(reg):
             print(anno)
             print(s_start, s_end)
             print(sub_seq)
-            print(alt_seq1)
             print(alt_seq)
 
             assert False

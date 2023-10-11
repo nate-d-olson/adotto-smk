@@ -10,10 +10,13 @@ report: "report/workflow.rst"
 
 
 # Configuration
-#configfile: ".test/config.yaml"
+configfile: ".test/config.yaml"
+
 
 # Variables
-REFIDS=config["references"].keys()
+REFIDS = config["references"].keys()
+
+
 wildcard_constraints:
     refid="|".join(REFIDS),
 
@@ -94,6 +97,22 @@ rule tabix:
         "v2.6.0/bio/tabix/index"
 
 
+rule create_genome_file:
+    input:
+        fai="{prefix}.fasta.fai",
+    output:
+        genome="{prefix}.genome",
+    log:
+        "logs/create_genome_file/{prefix}.log",
+    conda:
+        "envs/download.yml"
+    shell:
+        """
+        # Extract the first two columns (chromosome and size) from the .fai file
+        cut -f 1,2 {input.fai} 1> {output.genome} 2> {log}
+        """
+
+
 ## Downloading resources ------------------------------------------------------
 # Rule to download the reference genome
 rule download_reference:
@@ -133,20 +152,69 @@ rule download_giab_tr:
         """
 
 
-## TODO - add rule to get bed stats
+## TR Region Stats and Pre-Processing -----------------------------------------
+## Summary stats for region (span) size distribution
 ### https://github.com/ACEnglish/adotto/blob/main/regions/scripts/bed_stats.py
+rule span_stats:
+    input:
+        bed="results/{refid}.tr_regions.bed.gz",
+    output:
+        stats="results/{refid}.tr_regions_span_stats.txt",
+    log:
+        "logs/{refid}.tr_regions_span_stats.log",
+    conda:
+        "envs/span_stats.yml"
+    shell:
+        """
+        zcat {input.bed} \
+            | python workflow/scripts/bed_stats.py \
+            1> {output.stats} 2> {log}
+    """
 
-## TODO - add rule to filter bed, removing regions from extra chromosomes, regions lt 50 bp and gt 50kb
-## - not sure necessary for GIAB AllTandemRepeats.bed.gz but would not hurt to add and ensures pipeline
+
+## Filtering Regions
+## - removing regions from extra chromosomes, regions lt 50 bp and gt 50kb
 ## - follows methods used to generate Adotto DB v1.0
 ## https://github.com/ACEnglish/adotto/blob/main/regions/scripts/merged_bed_filter.py
+rule filter_regions:
+    input:
+        bed="results/{refid}.tr_regions.bed.gz",
+    output:
+        bed="results/{refid}.tr_regions_filtered.bed",
+        stats="results/{refid}.tr_regions_filter_stats.json",
+    log:
+        "logs/{refid}.tr_regions_filter_regions.log",
+    conda:
+        "envs/span_stats.yml"
+    shell:
+        """
+        zcat {input.bed} \
+            | python workflow/scripts/filter_tr_regions.py \
+            {output.stats} 1> {output.bed} 2> {log}
+    """
+
+
+rule bedtools_slop:
+    input:
+        "results/{refid}.tr_regions_filtered.bed",
+        genome="results/{refid}.genome",
+    output:
+        "results/{refid}.tr_regions_filtered_slop25.bed",
+    params:
+        ## Genome file, tab-seperated file defining the length of every contig
+        genome="results/{refid}.genome",
+        extra="-b 25",
+    log:
+        "logs/slop/{refid}.tr_regions_filtered_slop25.log",
+    wrapper:
+        "v2.6.0/bio/bedtools/slop"
 
 
 ## TRF Annotations ------------------------------------------------------------
 # Rule to get repeat sequences using samtools
 rule get_repeat_sequences:
     input:
-        bed="results/{refid}.tr_regions.bed.gz",
+        bed="results/{refid}.tr_regions_filtered_slop25.bed",
         ref="results/{refid}.fasta.gz",
     output:
         "results/{refid}.tr_sequences.fasta",
@@ -156,8 +224,7 @@ rule get_repeat_sequences:
         "envs/samtools.yml"
     shell:
         """
-        zcat {input.bed} 2>> {log} \
-            | awk '{{print $1 ":" $2 "-" $3}}' 2>> {log} \
+       awk '{{print $1 ":" $2 "-" $3}}' {input.bed} 2>> {log} \
             | samtools faidx {input.ref} -r - \
             1> {output} 2>> {log}
         """
@@ -193,10 +260,27 @@ rule trf_parsing:
         """
 
 
-## TODO - add rule for TRF interestion
+## TODO - add rule for TRF intersection
 ## - intersect trf_annos back to the input sources for QC
 ## - will need to modify for single source and replace/ fix hard coded paths
 ## https://github.com/ACEnglish/adotto/blob/main/regions/scripts/bed_intersection_stats.py
+
+
+rule trf_intersection:
+    input:
+        tr="results/{refid}.tr_regions_filtered.bed",
+        trannos="results/{refid}.trf_annos.bed",
+    output:
+        "results/{refid}.intersection.jl",
+    log:
+        "logs/{refid}.trf_intersection.log",
+    conda:
+        "envs/annotation_improver.yml"
+    shell:
+        """
+        python scripts/bed_intersection_stats.py {input.tr} {input.trannos} &> {log}
+    """
+
 
 ## TODO - add rule to QC TRF annotations
 ## -- will need to fix hard coded paths and modify as necessary to work within snakemake
@@ -206,7 +290,7 @@ rule trf_parsing:
 # Rule for identifying unannotated regions
 rule unannotated_regions:
     input:
-        regions="results/{refid}.tr_regions.bed.gz",
+        regions="results/{refid}.tr_regions_filtered_slop25.bed",
         annotated="results/{refid}.trf_annos.bed",
     output:
         "results/{refid}.unannotated_regions.bed",
@@ -224,7 +308,7 @@ rule unannotated_regions:
 # Rule for intermediate annotations
 rule intermediate_annotations:
     input:
-        regions="results/{refid}.tr_regions.bed.gz",
+        regions="results/{refid}.tr_regions_filtered_slop25.bed",
         regions_tbi="results/{refid}.tr_regions.bed.gz.tbi",
         annotations="results/{refid}.trf_annos_sorted.bed.gz",
         annotations_tbi="results/{refid}.trf_annos_sorted.bed.gz.tbi",
@@ -236,7 +320,9 @@ rule intermediate_annotations:
         "envs/intermediate_annotations.yml"
     shell:
         """
-        python workflow/scripts/tr_reganno_maker.py {input.regions} {input.annotations}  1> {output.bed} 2> {log}
+        python workflow/scripts/tr_reganno_maker.py \
+            {input.regions} {input.annotations}  \
+            1> {output.bed} 2> {log}
         """
 
 
@@ -244,7 +330,7 @@ rule intermediate_annotations:
 # Rule for splitting fasta into multiple parts
 rule split_fasta:
     input:
-        fasta="results/{refid}.tr_regions.fasta",
+        fasta="results/{refid}.tr_sequences.fasta",
     output:
         expand(
             "results/split_fasta_parts/{{refid}}.part{part}.fasta",
@@ -331,5 +417,5 @@ rule improve_annotations:
             {input.candidate} \
             {input.reference} \
             {input.repmask} \
-            > {output}
+            1> {output} 2> {log}
         """

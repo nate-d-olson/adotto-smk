@@ -31,17 +31,18 @@ def do_intersection(a, b, ro=None):
 
 
 if __name__ == "__main__":
-    tr_bed = "data/tr_annotated.bed.gz"
-    sources = ["baylor", "giab", "pacbio", "ucsd1", "ucsd2", "usc", "pbsv", "trgt"]
+    tr_bed=sys.argv[1]
+    tr_anno_bed = sys.argv[2]
+    sources = ["giab"]
     parts = []
     truvari.setup_logging()
     for i in sources:
         logging.info("intersecting %s", i)
-        dat = do_intersection(f"data/{i}/merged.bed.gz", tr_bed, ro=False)
+        dat = do_intersection(tr_bed, tr_anno_bed, ro=False)
         dat["source"] = i
         dat["ro"] = False
         parts.append(dat)
-        dat = do_intersection(f"data/{i}/merged.bed.gz", tr_bed, ro=True)
+        dat = do_intersection(tr_bed, tr_anno_bed, ro=True)
         dat["source"] = i
         dat["ro"] = True
         parts.append(dat)

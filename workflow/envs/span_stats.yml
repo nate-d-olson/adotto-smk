@@ -1,0 +1,7 @@
+name: bed_stats
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pandas=1.3.3
