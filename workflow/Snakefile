@@ -231,6 +231,23 @@ rule bedtools_slop:
     wrapper:
         "v2.6.0/bio/bedtools/slop"
 
+
+## Summary Stats for regions
+rule get_region_stats:
+    input:
+        "TODO - workout",
+    output:
+        "results/regions/{refid}/{refid}.tr_regions_filt_slop25_regions_stats.txt",
+    log:
+        "log/get_region_stats/{refid}.log",
+    conda:
+        "envs/span_stats.yml"
+    shell:
+        """
+    python scripts/consolidate_stats.py {input} > {output}
+    """
+
+
 # Rule to get repeat sequences using samtools
 rule get_repeat_sequences:
     input:
@@ -250,6 +267,8 @@ rule get_repeat_sequences:
             1> {output} 2>> {log}
         echo "[$(date)] Finished extraction of repeat sequences" >> {log}
         """
+
+
 # Rule for splitting fasta into multiple parts
 rule split_fasta:
     input:
@@ -282,6 +301,7 @@ rule split_fasta:
 
 ## TRF Annotations ------------------------------------------------------------
 
+
 # Rule to annotate sequences using trf
 rule annotate_seqs_wtrf:
     input:
@@ -302,6 +322,7 @@ rule trf_parsing:
         "results/annotations/trf/{refid}/{refid}.tandemrepeatfinder.txt",
     output:
         "results/annotations/trf/{refid}/{refid}.trf_annotations.bed",
+        "results/annotations/trf/{refid}/{refid}.trf_annotations.bed.jl",
     log:
         "logs/trf_parsing/{refid}.log",
     conda:
@@ -341,15 +362,23 @@ rule trf_intersection:
 ## https://github.com/ACEnglish/adotto/blob/main/regions/notebooks/analysis.ipynb
 rule trf_qc:
     input:
-        data = "path/to/your/data/region_stats.txt"
+        region_stats="path/to/your/data/{refid}.region_stats.txt",
+        regions_bed="results/regions/{refid}/{refid}.tr_regions_filt_slop25.bed",
+        tr_anno_jl="results/annotations/trf/{refid}/{refid}.trf_annotations.bed.jl",
+        intersections_jl="results/annotations/trf/{refid}/{refid}.intersection.jl",
     output:
-        report = "path/to/your/output/report.html"
+        report="results/annotations/trf/{refid}/{refid}.trf_qc_report.html",
+    log:
+        "logs/trf_qc/{refid}.log",
+    conda:
+        "envs/trf_gz.log"
     params:
-        notebook = "workflow/notebooks/trf_qc.ipynb"
+        notebook="workflow/notebooks/trf_qc.ipynb",
     shell:
         """
         papermill {params.notebook} {output.report} -p input_data_path {input.data}
         """
+
 
 # Rule for identifying unannotated regions
 rule unannotated_regions:
@@ -393,6 +422,7 @@ rule intermediate_annotations:
 
 
 ## RepeatMasker Annotations ---------------------------------------------------
+
 
 # Rule for creating RepeatMasker annotations
 rule repeatmasker_annotations:

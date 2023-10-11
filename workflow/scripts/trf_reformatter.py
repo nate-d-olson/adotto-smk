@@ -82,7 +82,7 @@ if __name__ == "__main__":
     data = pd.DataFrame(parse_trf_output(sys.argv[1]))
     # print(truvari.optimize_df_memory(data))
 
-    # joblib.dump(data, out_name + '.jl', compress=5)
+    joblib.dump(data, out_name + ".jl", compress=5)
     columns = [
         "chrom",
         "start",
