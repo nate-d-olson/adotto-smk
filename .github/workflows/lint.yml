@@ -28,7 +28,7 @@ jobs:
         
     - name: Display the directory contents
       shell: bash
-      run: ls data
+      run: ls $PWD
 
     - name: Test linting
       uses: snakemake/snakemake-github-action@v1
