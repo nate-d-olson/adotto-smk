@@ -341,7 +341,7 @@ rule trf_parsing:
 ## https://github.com/ACEnglish/adotto/blob/main/regions/scripts/bed_intersection_stats.py
 rule trf_intersection:
     input:
-        tr="results/regions/{refid}/{refid}.tr_regions_filtered.bed",
+        tr="results/regions/{refid}/{refid}.tr_regions_filt.bed",
         trannos="results/annotations/trf/{refid}/{refid}.trf_annotations.bed",
     output:
         "results/annotations/trf/{refid}/{refid}.intersection.jl",
@@ -383,7 +383,7 @@ rule trf_qc:
 # Rule for identifying unannotated regions
 rule unannotated_regions:
     input:
-        regions="results/regions/{refid}/{refid}.tr_regions_filtered_slop25.bed",
+        regions="results/regions/{refid}/{refid}.tr_regions_filt_slop25.bed",
         annotated="results/annotations/trf/{refid}/{refid}.trf_annotations.bed",
     output:
         "results/annotations/trf/{refid}/{refid}.unannotated_regions.bed",
@@ -403,8 +403,8 @@ rule unannotated_regions:
 # Rule for intermediate annotations
 rule intermediate_annotations:
     input:
-        regions="results/regions/{refid}/{refid}.tr_regions_filtered_slop25.bed.gz.tbi",
-        regions_tbi="results/regions/{refid}/{refid}.tr_regions_filtered_slop25.bed.gz.tbi",
+        regions="results/regions/{refid}/{refid}.tr_regions_filt_slop25.bed.gz.tbi",
+        regions_tbi="results/regions/{refid}/{refid}.tr_regions_filt_slop25.bed.gz.tbi",
         annotations="results/annotations/trf/{refid}/{refid}.trf_annotations_sorted.bed.gz",
         annotations_tbi="results/annotations/trf/{refid}/{refid}.trf_annotations_sorted.bed.gz.tbi",
     output:
