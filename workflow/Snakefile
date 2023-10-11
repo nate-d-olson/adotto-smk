@@ -26,7 +26,7 @@ wildcard_constraints:
 rule all:
     input:
         expand(
-            "results/annotations/{refid}.adotto_TRregions_v1.0.bed",
+            "results/final/{refid}.adotto_TRregions_v1.0.bed",
             refid=REFIDS,
         ),
 
