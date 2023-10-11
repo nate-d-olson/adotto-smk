@@ -132,7 +132,7 @@ rule download_reference:
 # Rule to download GIAB TR stratification
 rule download_giab_tr:
     output:
-        "results/regions/{refid}.tr_regions.bed.gz",
+        "results/regions/{refid}/{refid}.tr_regions.bed.gz",
     params:
         giabtrurl=lambda wildcards: config["references"][wildcards.refid]["GIABTRURL"],
         expected_md5=lambda wildcards: config["references"][wildcards.refid][
