@@ -106,7 +106,7 @@ rule download_reference:
         refurl=lambda wildcards: config["references"][wildcards.refid]["REFURL"],
         expected_md5=lambda wildcards: config["references"][wildcards.refid]["REF_MD5"],
     log:
-        "logs/download/{refid}_download_reference.log",
+        "logs/download_ref/{refid}.log",
     resources:
         attempts=3,
     conda:
@@ -132,14 +132,14 @@ rule download_reference:
 # Rule to download GIAB TR stratification
 rule download_giab_tr:
     output:
-        "results/annotations/{refid}.tr_regions.bed.gz",
+        "results/regions/{refid}.tr_regions.bed.gz",
     params:
         giabtrurl=lambda wildcards: config["references"][wildcards.refid]["GIABTRURL"],
         expected_md5=lambda wildcards: config["references"][wildcards.refid][
             "GIABTR_MD5"
         ],
     log:
-        "logs/download/{refid}_download_giab_tr.log",
+        "logs/download_tr/{refid}.log",
     resources:
         attempts=3,
     conda:
@@ -167,11 +167,11 @@ rule download_giab_tr:
 ### https://github.com/ACEnglish/adotto/blob/main/regions/scripts/bed_stats.py
 rule span_stats:
     input:
-        bed="results/annotations/{refid}.tr_regions.bed.gz",
+        bed="results/regions/{refid}/{refid}.tr_regions.bed.gz",
     output:
-        stats="results/stats/{refid}.tr_regions_span_stats.txt",
+        stats="results/regions/{refid}/{refid}.tr_regions_span_stats.txt",
     log:
-        "logs/stats/{refid}.tr_regions_span_stats.log",
+        "logs/span_stats/{refid}.log",
     conda:
         "envs/span_stats.yml"
     shell:
@@ -194,12 +194,12 @@ rule span_stats:
 ## https://github.com/ACEnglish/adotto/blob/main/regions/scripts/merged_bed_filter.py
 rule filter_regions:
     input:
-        bed="results/annotations/{refid}.tr_regions.bed.gz",
+        bed="results/regions/{refid}/{refid}.tr_regions.bed.gz",
     output:
-        bed="results/filtered/{refid}.tr_regions_filtered.bed",
-        stats="results/stats/{refid}.tr_regions_filter_stats.json",
+        bed="results/regions/{refid}/{refid}.tr_regions_filt.bed",
+        stats="results/regions/{refid}/{refid}.tr_regions_filt_stats.json",
     log:
-        "logs/filtering/{refid}.tr_regions_filter_regions.log",
+        "logs/filter_region/{refid}.log",
     conda:
         "envs/span_stats.yml"
     shell:
@@ -218,30 +218,28 @@ rule filter_regions:
 
 rule bedtools_slop:
     input:
-        "results/filtered/{refid}.tr_regions_filtered.bed",
-        genome="results/{refid}.genome",
+        "results/regions/{refid}/{refid}.tr_regions_filt.bed",
+        genome="results/references/{refid}.genome",
     output:
-        "results/slopped/{refid}.tr_regions_filtered_slop25.bed",
+        "results/regions/{refid}/{refid}.tr_regions_filt_slop25.bed",
     params:
         ## Genome file, tab-seperated file defining the length of every contig
         genome=lambda w, input: input[0],
         extra="-b 25",
     log:
-        "logs/slop/{refid}.tr_regions_filtered_slop25.log",
+        "logs/bedtools_slop/{refid}.log",
     wrapper:
         "v2.6.0/bio/bedtools/slop"
 
-
-## TRF Annotations ------------------------------------------------------------
 # Rule to get repeat sequences using samtools
 rule get_repeat_sequences:
     input:
-        bed="results/slopped/{refid}.tr_regions_filtered_slop25.bed",
-        ref="results/referene/{refid}.fasta.gz",
+        bed="results/regions/{refid}/{refid}.tr_regions_filt_slop25.bed",
+        ref="results/references/{refid}.fasta.gz",
     output:
-        "results/sequences/{refid}.tr_sequences.fasta",
+        "results/regions/{refid}/{refid}.tr_sequences.fasta",
     log:
-        "logs/sequences/{refid}_get_repeat_sequences.log",
+        "logs/get_repeat_sequences/{refid}.log",
     conda:
         "envs/samtools.yml"
     shell:
@@ -252,16 +250,46 @@ rule get_repeat_sequences:
             1> {output} 2>> {log}
         echo "[$(date)] Finished extraction of repeat sequences" >> {log}
         """
+# Rule for splitting fasta into multiple parts
+rule split_fasta:
+    input:
+        fasta="results/regions/{refid}.tr_sequences.fasta",
+    output:
+        expand(
+            "results/regions/split_fasta/{{refid}}/part{part}.fasta",
+            part=range(config["n_splits"]),
+        ),
+    params:
+        n_parts=config["n_splits"],
+        refid="{refid}",
+        outdir=lambda w, output: os.path.dirname(output[0]) + "/",
+    log:
+        "logs/split_fasta/{refid}.log",
+    conda:
+        "envs/fasta_splitter.yml"
+    shell:
+        """
+        echo "[$(date)] Starting fasta splitting" >> {log}
+        python workflow/scripts/fasta_splitter.py \
+            --fasta_path {input.fasta} \
+            --n_parts {params.n_parts} \
+            --output_dir {params.outdir} \
+            --refid {params.refid} \
+            &>> {log}
+        echo "[$(date)] Finished fasta splitting" >> {log}
+        """
 
+
+## TRF Annotations ------------------------------------------------------------
 
 # Rule to annotate sequences using trf
-rule annotate_sequences:
+rule annotate_seqs_wtrf:
     input:
-        "results/sequences/{refid}.tr_sequences.fasta",
+        "results/regions/{refid}/{refid}.tr_sequences.fasta",
     output:
-        "results/a{refid}.tandemrepeatfinder.txt",
+        "results/annotations/trf/{refid}/{refid}.tandemrepeatfinder.txt",
     log:
-        "logs/{refid}_annotate_sequences.log",
+        "logs/annotate_seqs_wtrf/{refid}.log",
     conda:
         "envs/trf.yml"
     shell:
@@ -271,11 +299,11 @@ rule annotate_sequences:
 # Rule for TRF parsing
 rule trf_parsing:
     input:
-        "results/annotations/{refid}.tandemrepeatfinder.txt",
+        "results/annotations/trf/{refid}/{refid}.tandemrepeatfinder.txt",
     output:
-        "results/parsed/{refid}.trf_annos.bed",
+        "results/annotations/trf/{refid}/{refid}.trf_annotations.bed",
     log:
-        "logs/parsing/{refid}.trf_parsing.log",
+        "logs/trf_parsing/{refid}.log",
     conda:
         "envs/trf_reformatter.yml"
     shell:
@@ -292,12 +320,12 @@ rule trf_parsing:
 ## https://github.com/ACEnglish/adotto/blob/main/regions/scripts/bed_intersection_stats.py
 rule trf_intersection:
     input:
-        tr="results/filtered/{refid}.tr_regions_filtered.bed",
-        trannos="results/parsed/{refid}.trf_annos.bed",
+        tr="results/regions/{refid}/{refid}.tr_regions_filtered.bed",
+        trannos="results/annotations/trf/{refid}/{refid}.trf_annotations.bed",
     output:
-        "results/intersection/{refid}.intersection.jl",
+        "results/annotations/trf/{refid}/{refid}.intersection.jl",
     log:
-        "logs/intrersection/{refid}.trf_intersection.log",
+        "logs/trf_intrersection/{refid}.trf_intersection.log",
     conda:
         "envs/annotation_improver.yml"
     shell:
@@ -311,17 +339,27 @@ rule trf_intersection:
 ## TODO - add rule to QC TRF annotations
 ## -- will need to fix hard coded paths and modify as necessary to work within snakemake
 ## https://github.com/ACEnglish/adotto/blob/main/regions/notebooks/analysis.ipynb
-
+rule trf_qc:
+    input:
+        data = "path/to/your/data/region_stats.txt"
+    output:
+        report = "path/to/your/output/report.html"
+    params:
+        notebook = "workflow/notebooks/trf_qc.ipynb"
+    shell:
+        """
+        papermill {params.notebook} {output.report} -p input_data_path {input.data}
+        """
 
 # Rule for identifying unannotated regions
 rule unannotated_regions:
     input:
-        regions="results/slopped/{refid}.tr_regions_filtered_slop25.bed",
-        annotated="results/parsed/{refid}.trf_annos.bed",
+        regions="results/regions/{refid}/{refid}.tr_regions_filtered_slop25.bed",
+        annotated="results/annotations/trf/{refid}/{refid}.trf_annotations.bed",
     output:
-        "results/unannotated/{refid}.unannotated_regions.bed",
+        "results/annotations/trf/{refid}/{refid}.unannotated_regions.bed",
     log:
-        "logs/unannotated/{refid}_unannotated_regions.log",
+        "logs/unannotated_regions/{refid}.log",
     conda:
         "envs/bedtools.yml"
     shell:
@@ -336,14 +374,14 @@ rule unannotated_regions:
 # Rule for intermediate annotations
 rule intermediate_annotations:
     input:
-        regions="results/annotations/{refid}.tr_regions_filtered_slop25.bed",
-        regions_tbi="results/annotations/{refid}.tr_regions.bed.gz.tbi",
-        annotations="results/annotations/{refid}.trf_annos_sorted.bed.gz",
-        annotations_tbi="results/annotations/{refid}.trf_annos_sorted.bed.gz.tbi",
+        regions="results/regions/{refid}/{refid}.tr_regions_filtered_slop25.bed.gz.tbi",
+        regions_tbi="results/regions/{refid}/{refid}.tr_regions_filtered_slop25.bed.gz.tbi",
+        annotations="results/annotations/trf/{refid}/{refid}.trf_annotations_sorted.bed.gz",
+        annotations_tbi="results/annotations/trf/{refid}/{refid}.trf_annotations_sorted.bed.gz.tbi",
     output:
-        bed="results/{refid}.candidate_v1.0.bed",
+        bed="results/annotations/{refid}.candidate_v1.0.bed",
     log:
-        "logs/{refid}_intermediate_annotations.log",
+        "logs/intermediate_annotations/{refid}.log",
     conda:
         "envs/intermediate_annotations.yml"
     shell:
@@ -355,46 +393,17 @@ rule intermediate_annotations:
 
 
 ## RepeatMasker Annotations ---------------------------------------------------
-# Rule for splitting fasta into multiple parts
-rule split_fasta:
-    input:
-        fasta="results/seqeunces/{refid}.tr_sequences.fasta",
-    output:
-        expand(
-            "results/split_fasta_parts/{{refid}}.part{part}.fasta",
-            part=range(config["n_splits"]),
-        ),
-    params:
-        n_parts=config["n_splits"],
-        refid="{refid}",
-        outdir=lambda w, output: os.path.dirname(output[0]) + "/",
-    log:
-        "logs/split_fasta/{refid}_split_fasta.log",
-    conda:
-        "envs/fasta_splitter.yml"
-    shell:
-        """
-        echo "[$(date)] Starting fasta splitting" >> {log}
-        python workflow/scripts/fasta_splitter.py \
-            --fasta_path {input.fasta} \
-            --n_parts {params.n_parts} \
-            --output_dir {params.outdir} \
-            --refid {params.refid} \
-            &>> {log}
-        echo "[$(date)] Finished fasta splitting" >> {log}
-        """
-
 
 # Rule for creating RepeatMasker annotations
 rule repeatmasker_annotations:
     input:
-        split_fasta="results/split_fasta_parts/{refid}.part{part}.fasta",
+        split_fasta="results/regions/split_fasta/{refid}/part{part}.fasta",
     output:
-        annotated="results/repeatmasker_annotated/{refid}/{refid}.part{part}.fasta.out",
+        annotated="results/annotations/repeatmasker/{refid}/part{part}.fasta.out",
     log:
-        "logs/repeat_masker/{refid}_part{part}.log",
+        "logs/repeatmasker/{refid}/part{part}.log",
     params:
-        outdir="results/repeatmasker_annotated/{refid}/",
+        outdir="results/annotations/repeatmasker/{refid}/",
     threads: config["rm_threads"]
     conda:
         "envs/repeatmasker.yml"
@@ -414,13 +423,13 @@ rule repeatmasker_annotations:
 rule convert_repeatmasker_to_joblib:
     input:
         rmout_files=expand(
-            "results/repeatmasker_annotated/{{refid}}/{{refid}}.part{part}.fasta.out",
+            "results/annotations/repeatmasker/{{refid}}/part{part}.fasta.out",
             part=range(config["n_splits"]),
         ),
     output:
-        "results/joblib/{refid}.repmask.jl",
+        "results/annotations/repeatmasker/{refid}.repmask.jl",
     log:
-        "logs/joblib/{refid}_convert_repeatmasker.log",
+        "logs/convert_repeatmasker_to_joblib/{refid}.log",
     conda:
         "envs/repmask_to_joblib.yml"
     shell:
@@ -436,13 +445,13 @@ rule convert_repeatmasker_to_joblib:
 # Rule for improving annotations
 rule improve_annotations:
     input:
-        candidate="results/{refid}.candidate_v1.0_sorted.bed.gz",
-        reference="results/{refid}.fasta.gz",
-        repmask="results/joblib/{refid}.repmask.jl",
+        candidate="results/annotations/{refid}.candidate_v1.0_sorted.bed.gz",
+        reference="results/refererence/{refid}.fasta.gz",
+        repmask="results/annotations/repeatmasker/{refid}.repmask.jl",
     output:
-        "results/final/{refid}.adotto_TRregions_v1.0.bed",
+        "results/{refid}.adotto_TRregions_v1.0.bed",
     log:
-        "logs/final/{refid}_improve_annotations.log",
+        "logs/improve_annotations/{refid}.log",
     conda:
         "envs/annotation_improver.yml"
     shell:
