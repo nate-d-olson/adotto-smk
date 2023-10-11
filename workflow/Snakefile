@@ -1,16 +1,17 @@
 import os
 import sys
 import math
+import datetime
 from snakemake.utils import min_version
 
 min_version("7.32.2")
 
 
-report: "report/workflow.rst"
+# report: "report/workflow.rst"
 
 
 # Configuration
-configfile: ".test/config.yaml"
+configfile: "config/config.yaml"
 
 
 # Variables
@@ -25,7 +26,7 @@ wildcard_constraints:
 rule all:
     input:
         expand(
-            "results/{refid}.adotto_TRregions_v1.0.bed",
+            "results/annotations/{refid}.adotto_TRregions_v1.0.bed",
             refid=REFIDS,
         ),
 
@@ -82,7 +83,7 @@ rule tabix:
 
 rule create_genome_file:
     input:
-        fai="{prefix}.fasta.fai",
+        fai="{prefix}.fasta.gz.fai",
     output:
         genome="{prefix}.genome",
     log:
@@ -100,38 +101,64 @@ rule create_genome_file:
 # Rule to download the reference genome
 rule download_reference:
     output:
-        "results/{refid}.fasta.gz",
+        "results/references/{refid}.fasta.gz",
     params:
         refurl=lambda wildcards: config["references"][wildcards.refid]["REFURL"],
         expected_md5=lambda wildcards: config["references"][wildcards.refid]["REF_MD5"],
     log:
-        "logs/{refid}_download_reference.log",
+        "logs/download/{refid}_download_reference.log",
+    resources:
+        attempts=3,
     conda:
         "envs/download.yml"
     shell:
         """
+        echo "[$(date)] Starting download of {output}" >> {log}
         curl -L {params.refurl} 1> {output} 2> {log}
+        # Error handling
+        if [ $? -ne 0 ]; then
+            echo "[$(date)] Error downloading {output}" >> {log}
+            exit 1
+        fi
         echo "{params.expected_md5}  {output}" | md5sum -c - &>> {log}
+        if [ $? -ne 0 ]; then
+            echo "[$(date)] MD5 Checksum failed for {output}" >> {log}
+            exit 1
+        fi
+        echo "[$(date)] Finished download of {output}" >> {log}
         """
 
 
 # Rule to download GIAB TR stratification
 rule download_giab_tr:
     output:
-        "results/{refid}.tr_regions.bed.gz",
+        "results/annotations/{refid}.tr_regions.bed.gz",
     params:
         giabtrurl=lambda wildcards: config["references"][wildcards.refid]["GIABTRURL"],
         expected_md5=lambda wildcards: config["references"][wildcards.refid][
             "GIABTR_MD5"
         ],
     log:
-        "logs/{refid}_download_giab_tr.log",
+        "logs/download/{refid}_download_giab_tr.log",
+    resources:
+        attempts=3,
     conda:
         "envs/download.yml"
     shell:
         """
-        curl -L {params.giabtrurl} 1> {output} 2> {log}
+        echo "[$(date)] Starting download of GIAB TR stratifications" >> {log}
+        curl -L {params.giabtrurl} 1> {output} 2>> {log}
+        # Error handling
+        if [ $? -ne 0 ]; then
+            echo "[$(date)] Error downloading GIAB TR stratification" >> {log}
+            exit 1
+        fi
         echo "{params.expected_md5}  {output}" | md5sum -c - &>> {log}
+        if [ $? -ne 0 ]; then
+            echo "[$(date)] MD5 Checksum failed for {output}" >> {log}
+            exit 1
+        fi
+        echo "[$(date)] Finished download of {output}" >> {log}
         """
 
 
@@ -140,18 +167,24 @@ rule download_giab_tr:
 ### https://github.com/ACEnglish/adotto/blob/main/regions/scripts/bed_stats.py
 rule span_stats:
     input:
-        bed="results/{refid}.tr_regions.bed.gz",
+        bed="results/annotations/{refid}.tr_regions.bed.gz",
     output:
-        stats="results/{refid}.tr_regions_span_stats.txt",
+        stats="results/stats/{refid}.tr_regions_span_stats.txt",
     log:
-        "logs/{refid}.tr_regions_span_stats.log",
+        "logs/stats/{refid}.tr_regions_span_stats.log",
     conda:
         "envs/span_stats.yml"
     shell:
         """
+        echo "[$(date)] Starting span stats computation" >> {log}
         zcat {input.bed} \
             | python workflow/scripts/bed_stats.py \
             1> {output.stats} 2> {log}
+        if [ $? -ne 0 ]; then
+            echo "[$(date)] Error computing span stats" >> {log}
+            exit 1
+        fi
+        echo "[$(date)] Finished span stats computation" >> {log}
     """
 
 
@@ -161,31 +194,37 @@ rule span_stats:
 ## https://github.com/ACEnglish/adotto/blob/main/regions/scripts/merged_bed_filter.py
 rule filter_regions:
     input:
-        bed="results/{refid}.tr_regions.bed.gz",
+        bed="results/annotations/{refid}.tr_regions.bed.gz",
     output:
-        bed="results/{refid}.tr_regions_filtered.bed",
-        stats="results/{refid}.tr_regions_filter_stats.json",
+        bed="results/filtered/{refid}.tr_regions_filtered.bed",
+        stats="results/stats/{refid}.tr_regions_filter_stats.json",
     log:
-        "logs/{refid}.tr_regions_filter_regions.log",
+        "logs/filtering/{refid}.tr_regions_filter_regions.log",
     conda:
         "envs/span_stats.yml"
     shell:
         """
+        echo "[$(date)] Starting filtering of regions" >> {log}
         zcat {input.bed} \
             | python workflow/scripts/filter_tr_regions.py \
             {output.stats} 1> {output.bed} 2> {log}
+        if [ $? -ne 0 ]; then
+            echo "[$(date)] Error during region filtering" >> {log}
+            exit 1
+        fi
+        echo "[$(date)] Finished filtering of regions" >> {log}
     """
 
 
 rule bedtools_slop:
     input:
-        "results/{refid}.tr_regions_filtered.bed",
+        "results/filtered/{refid}.tr_regions_filtered.bed",
         genome="results/{refid}.genome",
     output:
-        "results/{refid}.tr_regions_filtered_slop25.bed",
+        "results/slopped/{refid}.tr_regions_filtered_slop25.bed",
     params:
         ## Genome file, tab-seperated file defining the length of every contig
-        genome="{input.genome}",
+        genome=lambda w, input: input[0],
         extra="-b 25",
     log:
         "logs/slop/{refid}.tr_regions_filtered_slop25.log",
@@ -197,28 +236,30 @@ rule bedtools_slop:
 # Rule to get repeat sequences using samtools
 rule get_repeat_sequences:
     input:
-        bed="results/{refid}.tr_regions_filtered_slop25.bed",
-        ref="results/{refid}.fasta.gz",
+        bed="results/slopped/{refid}.tr_regions_filtered_slop25.bed",
+        ref="results/referene/{refid}.fasta.gz",
     output:
-        "results/{refid}.tr_sequences.fasta",
+        "results/sequences/{refid}.tr_sequences.fasta",
     log:
-        "logs/{refid}_get_repeat_sequences.log",
+        "logs/sequences/{refid}_get_repeat_sequences.log",
     conda:
         "envs/samtools.yml"
     shell:
         """
-       awk '{{print $1 ":" $2 "-" $3}}' {input.bed} 2>> {log} \
+        echo "[$(date)] Starting extraction of repeat sequences" >> {log}
+        awk '{{print $1 ":" $2 "-" $3}}' {input.bed} 2>> {log} \
             | samtools faidx {input.ref} -r - \
             1> {output} 2>> {log}
+        echo "[$(date)] Finished extraction of repeat sequences" >> {log}
         """
 
 
 # Rule to annotate sequences using trf
 rule annotate_sequences:
     input:
-        "results/{refid}.tr_sequences.fasta",
+        "results/sequences/{refid}.tr_sequences.fasta",
     output:
-        "results/{refid}.tandemrepeatfinder.txt",
+        "results/a{refid}.tandemrepeatfinder.txt",
     log:
         "logs/{refid}_annotate_sequences.log",
     conda:
@@ -230,38 +271,40 @@ rule annotate_sequences:
 # Rule for TRF parsing
 rule trf_parsing:
     input:
-        "results/{refid}.tandemrepeatfinder.txt",
+        "results/annotations/{refid}.tandemrepeatfinder.txt",
     output:
-        "results/{refid}.trf_annos.bed",
+        "results/parsed/{refid}.trf_annos.bed",
     log:
-        "logs/{refid}.trf_parsing.log",
+        "logs/parsing/{refid}.trf_parsing.log",
     conda:
         "envs/trf_reformatter.yml"
     shell:
         """
+        echo "[$(date)] Starting TRF parsing" >> {log}
         python workflow/scripts/trf_reformatter.py {input} {output} > {log}
+        echo "[$(date)] Finished TRF parsing" >> {log}
         """
 
 
-## TODO - add rule for TRF intersection
+## TRF intersection
 ## - intersect trf_annos back to the input sources for QC
 ## - will need to modify for single source and replace/ fix hard coded paths
 ## https://github.com/ACEnglish/adotto/blob/main/regions/scripts/bed_intersection_stats.py
-
-
 rule trf_intersection:
     input:
-        tr="results/{refid}.tr_regions_filtered.bed",
-        trannos="results/{refid}.trf_annos.bed",
+        tr="results/filtered/{refid}.tr_regions_filtered.bed",
+        trannos="results/parsed/{refid}.trf_annos.bed",
     output:
-        "results/{refid}.intersection.jl",
+        "results/intersection/{refid}.intersection.jl",
     log:
-        "logs/{refid}.trf_intersection.log",
+        "logs/intrersection/{refid}.trf_intersection.log",
     conda:
         "envs/annotation_improver.yml"
     shell:
         """
+        echo "[$(date)] Starting TRF intersection" >> {log}
         python scripts/bed_intersection_stats.py {input.tr} {input.trannos} &> {log}
+        echo "[$(date)] Finished TRF intersection" >> {log}
     """
 
 
@@ -273,18 +316,20 @@ rule trf_intersection:
 # Rule for identifying unannotated regions
 rule unannotated_regions:
     input:
-        regions="results/{refid}.tr_regions_filtered_slop25.bed",
-        annotated="results/{refid}.trf_annos.bed",
+        regions="results/slopped/{refid}.tr_regions_filtered_slop25.bed",
+        annotated="results/parsed/{refid}.trf_annos.bed",
     output:
-        "results/{refid}.unannotated_regions.bed",
+        "results/unannotated/{refid}.unannotated_regions.bed",
     log:
-        "logs/{refid}_unannotated_regions.log",
+        "logs/unannotated/{refid}_unannotated_regions.log",
     conda:
         "envs/bedtools.yml"
     shell:
         """
+        echo "[$(date)] Starting identification of unannotated regions" >> {log}
         bedtools intersect -a {input.regions} -b {input.annotated} -c 2> {log}\
             | awk '$4 == 0' 1> {output} 2>> {log}
+        echo "[$(date)] Finished identification of unannotated regions" >> {log}
         """
 
 
@@ -313,7 +358,7 @@ rule intermediate_annotations:
 # Rule for splitting fasta into multiple parts
 rule split_fasta:
     input:
-        fasta="results/{refid}.tr_sequences.fasta",
+        fasta="results/seqeunces/{refid}.tr_sequences.fasta",
     output:
         expand(
             "results/split_fasta_parts/{{refid}}.part{part}.fasta",
@@ -324,17 +369,19 @@ rule split_fasta:
         refid="{refid}",
         outdir=lambda w, output: os.path.dirname(output[0]) + "/",
     log:
-        "logs/{refid}_split_fasta.log",
+        "logs/split_fasta/{refid}_split_fasta.log",
     conda:
         "envs/fasta_splitter.yml"
     shell:
         """
+        echo "[$(date)] Starting fasta splitting" >> {log}
         python workflow/scripts/fasta_splitter.py \
             --fasta_path {input.fasta} \
             --n_parts {params.n_parts} \
             --output_dir {params.outdir} \
             --refid {params.refid} \
-            &> {log}
+            &>> {log}
+        echo "[$(date)] Finished fasta splitting" >> {log}
         """
 
 
@@ -345,7 +392,7 @@ rule repeatmasker_annotations:
     output:
         annotated="results/repeatmasker_annotated/{refid}/{refid}.part{part}.fasta.out",
     log:
-        "logs/{refid}_repeatmasker_part{part}.log",
+        "logs/repeat_masker/{refid}_part{part}.log",
     params:
         outdir="results/repeatmasker_annotated/{refid}/",
     threads: config["rm_threads"]
@@ -353,11 +400,13 @@ rule repeatmasker_annotations:
         "envs/repeatmasker.yml"
     shell:
         """
+        echo "[$(date)] Starting RepeatMasker annotation" >> {log}
         RepeatMasker \
             -pa {threads} \
             -qq -e hmmer -species human -lcambig -nocut -div 50 -no_id \
             -dir {params.outdir} \
-            -s {input.split_fasta} &> {log}
+            -s {input.split_fasta} &>> {log}
+        echo "[$(date)] Finished RepeatMasker annotation" >> {log}
         """
 
 
@@ -369,15 +418,17 @@ rule convert_repeatmasker_to_joblib:
             part=range(config["n_splits"]),
         ),
     output:
-        "results/{refid}.repmask.jl",
+        "results/joblib/{refid}.repmask.jl",
     log:
-        "logs/{refid}_convert_repeatmasker.log",
+        "logs/joblib/{refid}_convert_repeatmasker.log",
     conda:
         "envs/repmask_to_joblib.yml"
     shell:
         """
+        echo "[$(date)] Starting conversion of RepeatMasker output to joblib" >> {log}
         python workflow/scripts/repmask_to_joblib.py {input.rmout_files} 2> {log}
         mv repmask_results.dict.jl {output}
+        cho "[$(date)] Finished conversion to joblib" >> {log}
         """
 
 
@@ -387,18 +438,20 @@ rule improve_annotations:
     input:
         candidate="results/{refid}.candidate_v1.0_sorted.bed.gz",
         reference="results/{refid}.fasta.gz",
-        repmask="results/{refid}.repmask.jl",
+        repmask="results/joblib/{refid}.repmask.jl",
     output:
-        "results/{refid}.adotto_TRregions_v1.0.bed",
+        "results/final/{refid}.adotto_TRregions_v1.0.bed",
     log:
-        "logs/{refid}_improve_annotations.log",
+        "logs/final/{refid}_improve_annotations.log",
     conda:
         "envs/annotation_improver.yml"
     shell:
         """
+        echo "[$(date)] Starting annotation improvement" >> {log}
         python workflow/scripts/annotation_improver.py \
             {input.candidate} \
             {input.reference} \
             {input.repmask} \
-            1> {output} 2> {log}
+            1> {output} 2>> {log}
+        echo "[$(date)] Finished annotation improvement" >> {log}
         """
