@@ -33,6 +33,6 @@ jobs:
     - name: Test linting
       uses: snakemake/snakemake-github-action@v1
       with:
-        directory: .
+        directory: /github/workspace
         snakefile: workflow/Snakefile
         args: "--lint"
