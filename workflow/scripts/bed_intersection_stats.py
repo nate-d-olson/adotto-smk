@@ -31,7 +31,7 @@ def do_intersection(a, b, ro=None):
 
 
 if __name__ == "__main__":
-    tr_bed=sys.argv[1]
+    tr_bed = sys.argv[1]
     tr_anno_bed = sys.argv[2]
     sources = ["giab"]
     parts = []

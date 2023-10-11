@@ -43,27 +43,10 @@ rule samtools_index:
         "v2.6.0/bio/samtools/faidx"
 
 
-def get_ref_fai(wildcards):
-    ref = wildcards.get("ref", "")
-    if ref:
-        ref_id = ref
-    else:
-        ref_id = wildcards.get("ref_id", "")
-        if not ref_id:
-            prefix = wildcards.get("prefix", "")
-            for id in REFIDS:
-                if id in prefix:
-                    ref_id = id
-    if not ref_id:
-        print(f"ref_id could not be determined from wildcards or {prefix}")
-
-    return f"results/{ref_id}.fasta.gz.fai"
-
-
 rule bedtools_sort_bed:
     input:
         in_file="{prefix}.bed",
-        genome=get_ref_fai,
+        genome=lambda wildcards: f"results/{next((id for id in REFIDS if id in wildcards.prefix), 'UNKNOWN')}.fasta.gz.fai",
     output:
         "{prefix}_sorted.bed",
     log:
@@ -202,7 +185,7 @@ rule bedtools_slop:
         "results/{refid}.tr_regions_filtered_slop25.bed",
     params:
         ## Genome file, tab-seperated file defining the length of every contig
-        genome="results/{refid}.genome",
+        genome="{input.genome}",
         extra="-b 25",
     log:
         "logs/slop/{refid}.tr_regions_filtered_slop25.log",
@@ -339,7 +322,7 @@ rule split_fasta:
     params:
         n_parts=config["n_splits"],
         refid="{refid}",
-        outdir="results/split_fasta_parts/",
+        outdir=lambda w, output: os.path.dirname(output[0]) + "/",
     log:
         "logs/{refid}_split_fasta.log",
     conda:

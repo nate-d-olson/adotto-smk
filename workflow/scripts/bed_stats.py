@@ -8,7 +8,7 @@ import pandas as pd
 
 spans = []
 for line in sys.stdin:
-    chrom, start, end = line.strip().split('\t')[:3]
+    chrom, start, end = line.strip().split("\t")[:3]
     start = int(start)
     end = int(end)
     spans.append(abs(end - start))
@@ -19,4 +19,4 @@ desc = spans.describe()
 
 desc["tot_len"] = spans.sum()
 desc = desc.dropna().astype(int).to_string()
-sys.stdout.write(desc + '\n')
+sys.stdout.write(desc + "\n")
