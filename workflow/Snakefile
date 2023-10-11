@@ -476,7 +476,7 @@ rule convert_repeatmasker_to_joblib:
 rule improve_annotations:
     input:
         candidate="results/annotations/{refid}.candidate_v1.0_sorted.bed.gz",
-        reference="results/refererences/{refid}.fasta.gz",
+        reference="results/references/{refid}.fasta.gz",
         repmask="results/annotations/repeatmasker/{refid}.repmask.jl",
     output:
         "results/final/{refid}.adotto_TRregions_v1.0.bed",
