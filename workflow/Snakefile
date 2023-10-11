@@ -336,10 +336,10 @@ rule unannotated_regions:
 # Rule for intermediate annotations
 rule intermediate_annotations:
     input:
-        regions="results/{refid}.tr_regions_filtered_slop25.bed",
-        regions_tbi="results/{refid}.tr_regions.bed.gz.tbi",
-        annotations="results/{refid}.trf_annos_sorted.bed.gz",
-        annotations_tbi="results/{refid}.trf_annos_sorted.bed.gz.tbi",
+        regions="results/annotations/{refid}.tr_regions_filtered_slop25.bed",
+        regions_tbi="results/annotations/{refid}.tr_regions.bed.gz.tbi",
+        annotations="results/annotations/{refid}.trf_annos_sorted.bed.gz",
+        annotations_tbi="results/annotations/{refid}.trf_annos_sorted.bed.gz.tbi",
     output:
         bed="results/{refid}.candidate_v1.0.bed",
     log:
