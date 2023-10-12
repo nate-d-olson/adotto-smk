@@ -275,7 +275,7 @@ rule split_fasta:
         fasta="results/regions/{refid}/{refid}.tr_sequences.fasta",
     output:
         expand(
-            "results/regions/split_fasta/{{refid}}/part{part}.fasta",
+            "results/regions/{{refid}}/split_fasta/{{refid}}.part{part}.fasta",
             part=range(config["n_splits"]),
         ),
     params:
@@ -313,7 +313,11 @@ rule annotate_seqs_wtrf:
     conda:
         "envs/trf.yml"
     shell:
-        "trf {input} 3 7 7 80 5 5 500 -h -ngs 1> {output} 2>{log}"
+        """
+        echo "[$(date)] Starting TRF" >> {log}
+        trf {input} 3 7 7 80 5 5 500 -h -ngs 1> {output} 2>>{log}
+        echo "[$(date)] Finished TRF" >> {log}
+        """
 
 
 # Rule for TRF parsing
@@ -403,7 +407,7 @@ rule unannotated_regions:
 # Rule for intermediate annotations
 rule intermediate_annotations:
     input:
-        regions="results/regions/{refid}/{refid}.tr_regions_filt_slop25.bed.gz.tbi",
+        regions="results/regions/{refid}/{refid}.tr_regions_filt_slop25.bed.gz",
         regions_tbi="results/regions/{refid}/{refid}.tr_regions_filt_slop25.bed.gz.tbi",
         annotations="results/annotations/trf/{refid}/{refid}.trf_annotations_sorted.bed.gz",
         annotations_tbi="results/annotations/trf/{refid}/{refid}.trf_annotations_sorted.bed.gz.tbi",
@@ -427,9 +431,9 @@ rule intermediate_annotations:
 # Rule for creating RepeatMasker annotations
 rule repeatmasker_annotations:
     input:
-        split_fasta="results/regions/split_fasta/{refid}/part{part}.fasta",
+        split_fasta="results/regions/{refid}/split_fasta/{refid}.part{part}.fasta",
     output:
-        annotated="results/annotations/repeatmasker/{refid}/part{part}.fasta.out",
+        annotated="results/annotations/repeatmasker/{refid}/{refid}.part{part}.fasta.out",
     log:
         "logs/repeatmasker/{refid}/part{part}.log",
     params:
@@ -453,7 +457,7 @@ rule repeatmasker_annotations:
 rule convert_repeatmasker_to_joblib:
     input:
         rmout_files=expand(
-            "results/annotations/repeatmasker/{{refid}}/part{part}.fasta.out",
+            "results/annotations/repeatmasker/{{refid}}/{{refid}}.part{part}.fasta.out",
             part=range(config["n_splits"]),
         ),
     output:

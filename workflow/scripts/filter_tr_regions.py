@@ -15,7 +15,7 @@ span_kept = 0
 known_chrs = [f"chr{n}" for n in range(1, 23)]
 known_chrs.extend(["chrY", "chrX"])
 ## For chromosomes without chr prefix
-known_chrs.extend([str(n) for n in range(1,23)])
+known_chrs.extend([str(n) for n in range(1, 23)])
 known_chrs.extend(["X", "Y"])
 
 for line in sys.stdin:
