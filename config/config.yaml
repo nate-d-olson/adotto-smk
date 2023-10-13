@@ -15,6 +15,6 @@ references:
     REF_MD5: 06caded0055ec647a69acb708e13beff
     GIABTR_MD5: bba0f88ac309e645b8963ca4778f8379
 n_splits: 24
-rm_threads: 12
+rm_threads: 24
 
 
