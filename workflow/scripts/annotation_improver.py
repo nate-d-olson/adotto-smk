@@ -1,5 +1,12 @@
+#!/usr/bin/env python3
+
 """
 Simplifies TR_region annotations and expands their columns
+
+Usage:
+    python annotation_improver.py <input_annotations> <reference_file> <repeatmasker_file>
+
+
 
 annotations are checked for 'nested', 'staggered', or 'isolated' categories
 region boundaries are updated to try and ensure 25bp of buffer
@@ -30,11 +37,11 @@ the overlap flags are:
 
 import sys
 import json
-import math
 import pysam
 import joblib
 import truvari
-import pandas as pd
+import argparse
+import logging
 from intervaltree import IntervalTree
 from functools import cmp_to_key
 
@@ -559,27 +566,14 @@ def resolve_homspan(region, hom_tree):
     return tot_bases
 
 
-if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        if sys.argv[1] == "0":
-            for reg in iter_tr_regions("/dev/stdin"):
-                print("-" * 20, reg["start"], reg["end"])
-                viz_region(reg)
-                print("-" * 20)
-        elif sys.argv[1] == "1":
-            for reg in iter_tr_regions_1("/dev/stdin"):
-                print("-" * 20, reg["start"], reg["end"])
-                viz_region(reg)
-                print("-" * 20)
-        sys.exit(0)
-    in_anno, in_ref, in_rep = sys.argv[1:]
-
-    reference = pysam.FastaFile(in_ref)
-    repeats = joblib.load(in_rep)
+def main(input_annotations, reference_file, repeatmasker_file):
+    logging.info("Improving annotations...")
+    reference = pysam.FastaFile(reference_file)
+    repeats = joblib.load(repeatmasker_file)
 
     removed = 0
     total = 0
-    for reg in iter_tr_regions(in_anno):
+    for reg in iter_tr_regions(input_annotations):
         total += 1
         in_anno_cnt = len(reg["annos"])
 
@@ -602,7 +596,6 @@ if __name__ == "__main__":
         reg["start"], reg["end"] = new_start, new_end
         reg["up_buff"], reg["dn_buff"] = s_buff, e_buff
 
-        # update annotations
         reg["annos"] = out_annos
         reg["n_filtered"] = in_anno_cnt - len(out_annos)
         reg["n_annos"] = len(out_annos)
@@ -610,11 +603,20 @@ if __name__ == "__main__":
         reg["mu_purity"] = annotate_purity(reg)
         reg["pct_annotated"] = pct_annotated(reg, first_start, last_end)
 
-        # Do it after we've update the positions
-        # reg['patho'] = patho.get_annotation(reg)
-        # reg['codis'] = codis.get_annotation(reg)
-
         reg["hom_span"] = resolve_homspan(reg, hom_tree)
 
         write_region(reg)
-    sys.stderr.write(f"removed {removed} regions from {total}\n")
+    logging.info(f"Removed {removed} regions from {total}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Improve annotations of genomic regions."
+    )
+    parser.add_argument("input_annotations", help="Path to the input annotations file.")
+    parser.add_argument("reference_file", help="Path to the reference file.")
+    parser.add_argument("repeatmasker_file", help="Path to the RepeatMasker file.")
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO)
+    main(args.input_annotations, args.reference_file, args.repeatmasker_file)

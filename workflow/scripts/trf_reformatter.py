@@ -1,4 +1,13 @@
+#!/usr/bin/env python3
 """
+Script to parse the output of Tandem Repeat Finder (TRF) and transform it into a structured format.
+The script translates the coordinates based on the 'samtools faidx' fetched sequence header 
+back to whole-genome coordinates. The processed data is saved as a compressed Joblib file and a tab-separated file.
+
+Usage:
+    python trf_reformatter.py <TRF_output_path> <output_name>
+
+Notes:
 samtools faidx is 1-based
 
 The bedfiles are (presumably) 0 based
@@ -13,15 +22,14 @@ Then  I can do some pysam.FastaFile.fetch to check that the coordinates are righ
 """
 import sys
 import joblib
-import truvari
 import pandas as pd
+import argparse
 
 
 def parse_trf_output(tr_fn):
     """
-    Reads the otput from tandem repeat finder
-    translates the coordinates from the 'samtools faidx' fetched sequence header
-    back to whole genome coordinates
+    Parses the output from Tandem Repeat Finder (TRF) and returns a DataFrame.
+    Translates the coordinates based on the 'samtools faidx' fetched sequence header back to whole-genome coordinates.
     """
     trf_cols = [
         ("start", int),
@@ -42,47 +50,39 @@ def parse_trf_output(tr_fn):
         ("sequence", str),
         ("dnflank", str),
     ]
+
+    data_entries = []
+
     with open(tr_fn, "r") as fh:
-        name = fh.readline()
-        if name == "":  # no hits
-            return
-        name = name.strip()[1:]
-        chrom, coords = name.split(":")
-        wgs_start, wgs_end = coords.split("-")
-        # 0-based correction
-        wgs_start = int(wgs_start) - 2
-        # -1 because faidx is 1-based (found in annotation header)
-        # & -1 because trf start is 1-based (found in start)
-        wgs_end = int(wgs_end)
         while True:
             line = fh.readline()
-            if line == "":
+            if not line:
                 break
+
             if line.startswith("@"):
                 name = line.strip()[1:]
                 chrom, coords = name.split(":")
-                wgs_start, wgs_end = coords.split("-")
-                wgs_start = int(wgs_start) - 2  # 0-based correction
-                wgs_end = int(wgs_end)
+                wgs_start, wgs_end = map(int, coords.split("-"))
+                wgs_start -= 2
                 continue
-            line = line.strip().split(" ")
-            data = {x[0]: x[1](y) for x, y in zip(trf_cols, line) if x[1] is not None}
+
+            line_data = line.strip().split(" ")
+            data = {
+                x[0]: x[1](y) for x, y in zip(trf_cols, line_data) if x[1] is not None
+            }
             data["chrom"] = chrom
             data["in_region_start"] = wgs_start
             data["in_region_end"] = wgs_end
             data["start"] += wgs_start
             data["end"] += wgs_start
-            yield data
+            data_entries.append(data)
+
+    return pd.DataFrame(data_entries)
 
 
-if __name__ == "__main__":
-    # def parse_trf_output(fn):
-    out_name = sys.argv[2]
-    # temp while I figure out how to translate this
-    data = pd.DataFrame(parse_trf_output(sys.argv[1]))
-    # print(truvari.optimize_df_memory(data))
-
-    joblib.dump(data, out_name + ".jl", compress=5)
+def main(args):
+    data = parse_trf_output(args.trf_output_path)
+    joblib.dump(data, args.output_name + ".jl", compress=5)
     columns = [
         "chrom",
         "start",
@@ -93,4 +93,13 @@ if __name__ == "__main__":
         "entropy",
         "repeat",
     ]
-    data[columns].to_csv(out_name, sep="\t", index=False, header=False)
+    data[columns].to_csv(args.output_name, sep="\t", index=False, header=False)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Parse and reformat TRF output.")
+    parser.add_argument("trf_output_path", help="Path to the TRF output file.")
+    parser.add_argument("output_name", help="Base name for the output files.")
+    args = parser.parse_args()
+
+    main(args)

@@ -1,3 +1,35 @@
+"""
+================================================================================
+Snakefile for Tandem Repeat Annotation Pipeline
+================================================================================
+
+Description:
+    This Snakefile defines a workflow for generating a well-annotated BED file 
+    of tandem repeats across multiple genomes. The methods employed here were
+    developed by AC English for Adotto (https://github.com/ACEnglish/adotto/tree/main)
+
+Author:
+    ND Olson - nolson@nist.gov
+
+Creation Date:
+    October 12, 2023
+
+Requirements:
+    - Snakemake v7.32.2 or higher
+    - Conda environments as defined in the envs/ directory
+    - External Python scripts in the workflow/scripts/ directory
+
+Usage:
+    snakemake --use-conda --cores [number of cores]
+
+Notes:
+    Ensure the config.yaml is properly set up before executing the pipeline. 
+    For more detailed documentation, please refer to the accompanying README.md.
+
+================================================================================
+"""
+
+
 import os
 import sys
 import math
@@ -178,7 +210,7 @@ rule span_stats:
         """
         echo "[$(date)] Starting span stats computation" >> {log}
         zcat {input.bed} \
-            | python workflow/scripts/bed_stats.py \
+            | python workflow/scripts/span_stats.py \
             1> {output.stats} 2> {log}
         if [ $? -ne 0 ]; then
             echo "[$(date)] Error computing span stats" >> {log}
@@ -320,8 +352,8 @@ rule annotate_seqs_wtrf:
         """
 
 
-# Rule for TRF parsing
-rule trf_parsing:
+# Rule for TRF reformatting
+rule trf_reformatter:
     input:
         "results/annotations/trf/{refid}/{refid}.tandemrepeatfinder.txt",
     output:
@@ -356,7 +388,7 @@ rule trf_intersection:
     shell:
         """
         echo "[$(date)] Starting TRF intersection" >> {log}
-        python scripts/bed_intersection_stats.py {input.tr} {input.trannos} &> {log}
+        python scripts/trf_intersection.py {input.tr} {input.trannos} &> {log}
         echo "[$(date)] Finished TRF intersection" >> {log}
     """
 
@@ -419,7 +451,7 @@ rule intermediate_annotations:
         "envs/intermediate_annotations.yml"
     shell:
         """
-        python workflow/scripts/tr_reganno_maker.py \
+        python workflow/scripts/intermediate_annotations.py \
             {input.regions} {input.annotations}  \
             1> {output.bed} 2> {log}
         """
@@ -468,10 +500,9 @@ rule convert_repeatmasker_to_joblib:
         "envs/repmask_to_joblib.yml"
     shell:
         """
-        echo "[$(date)] Starting conversion of RepeatMasker output to joblib" >> {log}
-        python workflow/scripts/repmask_to_joblib.py {input.rmout_files} 2> {log}
-        mv repmask_results.dict.jl {output}
-        cho "[$(date)] Finished conversion to joblib" >> {log}
+        echo "[$(date)] Starting conversion of RepeatMasker output to joblib" > {log}
+        python workflow/scripts/repmask_to_joblib.py {output} {input.rmout_files} &>> {log}
+        echo "[$(date)] Finished conversion to joblib" >> {log}
         """
 
 
