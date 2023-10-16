@@ -5,7 +5,7 @@ The script translates the coordinates based on the 'samtools faidx' fetched sequ
 back to whole-genome coordinates. The processed data is saved as a compressed Joblib file and a tab-separated file.
 
 Usage:
-    python trf_reformatter.py <TRF_output_path> <output_name>
+    python trf_reformatter.py <TRF_output_path> <output_bed> <output_joblib>
 
 Notes:
 samtools faidx is 1-based
@@ -82,7 +82,7 @@ def parse_trf_output(tr_fn):
 
 def main(args):
     data = parse_trf_output(args.trf_output_path)
-    joblib.dump(data, args.output_name + ".jl", compress=5)
+    joblib.dump(data, args.output_joblib, compress=5)
     columns = [
         "chrom",
         "start",
@@ -93,13 +93,14 @@ def main(args):
         "entropy",
         "repeat",
     ]
-    data[columns].to_csv(args.output_name, sep="\t", index=False, header=False)
+    data[columns].to_csv(args.output_bed, sep="\t", index=False, header=False)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse and reformat TRF output.")
     parser.add_argument("trf_output_path", help="Path to the TRF output file.")
-    parser.add_argument("output_name", help="Base name for the output files.")
+    parser.add_argument("output_bed", help="Name of bed output file.")
+    parser.add_argument("output_joblib", help="Name of joblib output file.")
     args = parser.parse_args()
 
     main(args)

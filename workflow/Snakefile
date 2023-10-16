@@ -357,17 +357,17 @@ rule trf_reformatter:
     input:
         "results/annotations/trf/{refid}/{refid}.tandemrepeatfinder.txt",
     output:
-        "results/annotations/trf/{refid}/{refid}.trf_annotations.bed",
-        "results/annotations/trf/{refid}/{refid}.trf_annotations.bed.jl",
+        bed="results/annotations/trf/{refid}/{refid}.trf_annotations.bed",
+        jl="results/annotations/trf/{refid}/{refid}.trf_annotations.jl",
     log:
         "logs/trf_parsing/{refid}.log",
     conda:
         "envs/trf_reformatter.yml"
     shell:
         """
-        echo "[$(date)] Starting TRF parsing" >> {log}
-        python workflow/scripts/trf_reformatter.py {input} {output} > {log}
-        echo "[$(date)] Finished TRF parsing" >> {log}
+        echo "[$(date)] Starting TRF Reformatting" >> {log}
+        python workflow/scripts/trf_reformatter.py {input} {output.bed} {output.jl}>> {log}
+        echo "[$(date)] Finished TRF Reformatting" >> {log}
         """
 
 
