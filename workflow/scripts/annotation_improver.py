@@ -116,9 +116,6 @@ def get_subregions(annos):
     for pos, anno in enumerate(annos):
         if "ovl_flag" not in anno:
             anno["ovl_flag"] = 0
-        if "repeat" in anno:
-            anno["motif"] = anno["repeat"]
-            del anno["repeat"]
         i_tree.addi(anno["start"], anno["end"], pos)
 
     m_tree = i_tree.copy()
@@ -195,14 +192,10 @@ def viz_region(reg):
         mode = True
         for i in range(math.floor(anno["copies"])):
             if mode:
-                seq += anno["repeat"] if "repeat" in anno else anno["motif"]
+                seq += anno["repeat"]
             else:
                 # seq += "[cyan]" + anno['repeat'].lower() + "[/]"
-                seq += (
-                    anno["repeat"].lower()
-                    if "repeat" in anno
-                    else anno["motif"].lower()
-                )
+                seq += anno["repeat"].lower()
             mode = not mode
 
         if mode:
@@ -404,9 +397,9 @@ def annotate_purity(reference, reg):
         s_start = anno["start"] - reg["start"]
         s_end = anno["end"] - reg["start"]
         sub_seq = seq[s_start:s_end]
-        alt_seq = anno["motif"] * int(math.floor(anno["copies"]))
+        alt_seq = anno["repeat"] * int(math.floor(anno["copies"]))
         remain = int((anno["copies"] % 1) * len(anno))
-        alt_seq += anno["motif"][:remain]
+        alt_seq += anno["repeat"][:remain]
         if len(alt_seq) + len(sub_seq) == 0:
             print("what?")
             print(reg)
