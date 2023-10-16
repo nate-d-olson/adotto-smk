@@ -42,6 +42,7 @@ import joblib
 import truvari
 import argparse
 import logging
+import math
 from intervaltree import IntervalTree
 from functools import cmp_to_key
 
@@ -396,7 +397,7 @@ def get_bounds(annos):
     return start, end
 
 
-def annotate_purity(reg):
+def annotate_purity(reference, reg):
     seq = reference.fetch(reg["chrom"], reg["start"], reg["end"])
     scores = []
     for anno in reg["annos"]:
@@ -600,7 +601,7 @@ def main(input_annotations, reference_file, repeatmasker_file):
         reg["n_filtered"] = in_anno_cnt - len(out_annos)
         reg["n_annos"] = len(out_annos)
         reg["n_subregions"] = len([_ for _ in get_subregions(out_annos)])
-        reg["mu_purity"] = annotate_purity(reg)
+        reg["mu_purity"] = annotate_purity(reference, reg)
         reg["pct_annotated"] = pct_annotated(reg, first_start, last_end)
 
         reg["hom_span"] = resolve_homspan(reg, hom_tree)
